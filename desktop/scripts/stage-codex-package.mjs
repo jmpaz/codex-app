@@ -6,7 +6,16 @@ import { buildCodexLinuxRuntime } from './build-codex-linux-runtime.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const desktopRoot = path.resolve(__dirname, '..');
-const defaultOutputRoot = path.join(desktopRoot, 'out', 'Codex-linux-x64-codex');
+const currentLinuxPackageArch =
+  process.env.CODEX_LINUX_PACKAGE_ARCH ??
+  (process.env.CODEX_LINUX_HELPER_ARCH === 'linux-arm64' || process.arch === 'arm64'
+    ? 'arm64'
+    : 'x64');
+const defaultOutputRoot = path.join(
+  desktopRoot,
+  'out',
+  `Codex-linux-${currentLinuxPackageArch}-codex`,
+);
 
 function parseOutputRoot(argv) {
   const outputIndex = argv.findIndex((arg) => arg === '--output');
@@ -26,7 +35,7 @@ async function main() {
   const outputRoot = parseOutputRoot(process.argv.slice(2));
   const summary = await buildCodexLinuxRuntime({
     outputRoot,
-    shellRoot: path.join(desktopRoot, 'out', 'Codex-linux-x64'),
+    shellRoot: path.join(desktopRoot, 'out', `Codex-linux-${currentLinuxPackageArch}`),
     assembledRoot: path.join(desktopRoot, 'tmp', `codex-runtime-stage`),
     codexShellRoot: path.resolve(desktopRoot, '..', 'codex', 'app'),
   });

@@ -17,17 +17,45 @@ const recoveredExtractedAppRoot = path.join(
   'recovered',
   'app-asar-extracted',
 );
-const linuxHelperResourcesRoot = path.join(desktopRoot, 'resources', 'bin', 'linux-x64');
+const supportedLinuxHelperResourceDirs = new Set(['linux-x64', 'linux-arm64']);
+const defaultLinuxHelperResourceDir = process.arch === 'arm64' ? 'linux-arm64' : 'linux-x64';
+const linuxHelperResourceDir =
+  process.env.CODEX_LINUX_HELPER_ARCH ?? defaultLinuxHelperResourceDir;
+
+if (!supportedLinuxHelperResourceDirs.has(linuxHelperResourceDir)) {
+  throw new Error(
+    `Unsupported CODEX_LINUX_HELPER_ARCH "${linuxHelperResourceDir}". ` +
+      `Expected one of: ${Array.from(supportedLinuxHelperResourceDirs).join(', ')}`,
+  );
+}
+
+const linuxHelperResourcesRoot = path.join(
+  desktopRoot,
+  'resources',
+  'bin',
+  linuxHelperResourceDir,
+);
 const defaultAssembleOutputRoot = path.join(desktopRoot, 'tmp', 'codex-runtime');
 const currentLinuxNodeModulesRoot = path.join(desktopRoot, 'node_modules');
 const currentLinuxUnpackedNodeModulesRoot = path.join(
   desktopRoot,
   'out',
-  'Codex-linux-x64',
+  `Codex-linux-${process.arch === 'arm64' ? 'arm64' : 'x64'}`,
   'resources',
   'app.asar.unpacked',
   'node_modules',
 );
+const requiredRuntimeNodeModulePackages = [
+  'bindings',
+  'better-sqlite3',
+  'file-uri-to-path',
+  'node-pty',
+  'tslib',
+];
+const runtimeNodeModuleExcludedPaths = new Map([
+  ['better-sqlite3', ['bin', 'build']],
+  ['node-pty', ['bin', 'build', 'prebuilds']],
+]);
 const linuxBrowserLauncherSourcePath = path.join(
   desktopRoot,
   'scripts',
@@ -246,30 +274,54 @@ const mainLinuxTitleBarOverlayUpdatePatchAlternatives = [
     target:
       'installWindowsTitleBarOverlaySync(e,t){if(process.platform!==`win32`||t!==`primary`)return;',
     replacement:
+      'installWindowsTitleBarOverlaySync(e,t){if(process.platform!==`win32`&&(process.platform!==`linux`||process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY===`1`)||t!==`primary`)return;',
+  },
+  {
+    target:
       'installWindowsTitleBarOverlaySync(e,t){if(process.platform!==`win32`&&process.platform!==`linux`||t!==`primary`)return;',
+    replacement:
+      'installWindowsTitleBarOverlaySync(e,t){if(process.platform!==`win32`&&(process.platform!==`linux`||process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY===`1`)||t!==`primary`)return;',
   },
 ];
 const mainLinuxTitleBarOverlayUpdatePatchMarker =
-  'if(process.platform!==`win32`&&process.platform!==`linux`||t!==`primary`)return;';
+  'process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY===`1`)||t!==`primary`)return;';
 const mainLinuxPrimaryTitleBarPatchAlternatives = [
   {
     target: 'n===`win32`?{titleBarStyle:`hidden`,titleBarOverlay:ow()}:{titleBarStyle:`default`}',
     replacement:
+      '(n===`win32`||n===`linux`&&process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:ow()}:{titleBarStyle:`default`}',
+  },
+  {
+    target:
       '(n===`win32`||n===`linux`)?{titleBarStyle:`hidden`,titleBarOverlay:ow()}:{titleBarStyle:`default`}',
+    replacement:
+      '(n===`win32`||n===`linux`&&process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:ow()}:{titleBarStyle:`default`}',
   },
   {
     target: 'n===`win32`?{titleBarStyle:`hidden`,titleBarOverlay:vM()}:{titleBarStyle:`default`}',
     replacement:
+      '(n===`win32`||n===`linux`&&process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:vM()}:{titleBarStyle:`default`}',
+  },
+  {
+    target:
       '(n===`win32`||n===`linux`)?{titleBarStyle:`hidden`,titleBarOverlay:vM()}:{titleBarStyle:`default`}',
+    replacement:
+      '(n===`win32`||n===`linux`&&process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:vM()}:{titleBarStyle:`default`}',
   },
   {
     target: 'n===`win32`?{titleBarStyle:`hidden`,titleBarOverlay:xM()}:{titleBarStyle:`default`}',
     replacement:
+      '(n===`win32`||n===`linux`&&process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:xM()}:{titleBarStyle:`default`}',
+  },
+  {
+    target:
       '(n===`win32`||n===`linux`)?{titleBarStyle:`hidden`,titleBarOverlay:xM()}:{titleBarStyle:`default`}',
+    replacement:
+      '(n===`win32`||n===`linux`&&process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:xM()}:{titleBarStyle:`default`}',
   },
 ];
 const mainLinuxPrimaryTitleBarPatchMarker =
-  '(n===`win32`||n===`linux`)?{titleBarStyle:`hidden`,titleBarOverlay:';
+  'process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`)?{titleBarStyle:`hidden`,titleBarOverlay:';
 const mainLinuxNativeMenuAutoHidePatchAlternatives = [
   {
     target: 'process.platform===`win32`?{autoHideMenuBar:!0}:{}',
@@ -1130,13 +1182,53 @@ function listLinuxNodePtyPrebuilds(sourceNodeModulesRoot) {
     return [];
   }
 
+  const prebuildPattern =
+    linuxHelperResourceDir === 'linux-arm64' ? /^linux-arm64-\d+$/ : /^linux-x64-\d+$/;
+
   return fs
     .readdirSync(nodePtyBinRoot)
     .filter((entry) =>
-      /^linux-x64-\d+$/.test(entry) &&
+      prebuildPattern.test(entry) &&
       fs.existsSync(path.join(nodePtyBinRoot, entry, 'node-pty.node')),
     )
     .sort();
+}
+
+function copyRuntimeNodeModulePackage(sourceNodeModulesRoot, extractedAppRoot, packageName) {
+  const sourcePackageRoot = path.join(sourceNodeModulesRoot, packageName);
+  assertExists(sourcePackageRoot, `Runtime node module "${packageName}"`);
+
+  const destinationPackageRoot = path.join(extractedAppRoot, 'node_modules', packageName);
+  const excludedPaths = runtimeNodeModuleExcludedPaths.get(packageName) ?? [];
+
+  fs.rmSync(destinationPackageRoot, { force: true, recursive: true });
+  fs.mkdirSync(path.dirname(destinationPackageRoot), { recursive: true });
+  fs.cpSync(sourcePackageRoot, destinationPackageRoot, {
+    recursive: true,
+    preserveTimestamps: true,
+    filter: (sourcePath) => {
+      const relativePath = path
+        .relative(sourcePackageRoot, sourcePath)
+        .split(path.sep)
+        .join('/');
+
+      return !excludedPaths.some(
+        (excludedPath) =>
+          relativePath === excludedPath || relativePath.startsWith(`${excludedPath}/`),
+      );
+    },
+  });
+}
+
+function copyRuntimeNodeModulePackages(sourceNodeModulesRoot, extractedAppRoot) {
+  const copiedPackages = [];
+
+  for (const packageName of requiredRuntimeNodeModulePackages) {
+    copyRuntimeNodeModulePackage(sourceNodeModulesRoot, extractedAppRoot, packageName);
+    copiedPackages.push(packageName);
+  }
+
+  return copiedPackages;
 }
 
 function sha256(filePath) {
@@ -1865,6 +1957,7 @@ export function normalizeNativeModules(extractedAppRoot, options = {}) {
     options.preferredSourceRoots ??
       (options.sourceNodeModulesRoot ? [options.sourceNodeModulesRoot] : []),
   );
+  const copiedPackages = copyRuntimeNodeModulePackages(sourceNodeModulesRoot, extractedAppRoot);
   const relativeFiles = [
     {
       relativePath: path.join(
@@ -1908,6 +2001,7 @@ export function normalizeNativeModules(extractedAppRoot, options = {}) {
 
   return {
     sourceNodeModulesRoot,
+    copiedPackages,
     copiedFiles,
   };
 }
@@ -1938,6 +2032,11 @@ export async function assembleCodexRuntime({ outputRoot }) {
       path.join(linuxHelperResourcesRoot, resourceName),
       path.join(resourcesRoot, resourceName),
       `Required codex resource "${resourceName}"`,
+    );
+    copyRequired(
+      path.join(linuxHelperResourcesRoot, resourceName),
+      path.join(resourcesRoot, 'bin', resourceName),
+      `Required codex bin resource "${resourceName}"`,
     );
   }
 

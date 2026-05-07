@@ -158,13 +158,13 @@ describe('Recovered Codex bundle RED contract', () => {
       expect(mainBundle).toContain('require(`../../scripts/linux-browser-launch.js`)');
       expect(mainBundle).not.toContain('require(`../../../../scripts/linux-browser-launch.js`)');
       expect(mainBundle).toMatch(
-        /\(n===`win32`\|\|n===`linux`\)\?\{titleBarStyle:`hidden`,titleBarOverlay:[A-Za-z_$][\w$]*\(\)\}/,
+        /\(n===`win32`\|\|n===`linux`&&process\.env\.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY!==`1`\)\?\{titleBarStyle:`hidden`,titleBarOverlay:[A-Za-z_$][\w$]*\(\)\}/,
       );
       expect(mainBundle).toContain(
         'process.platform===`linux`?{color:`#2b2f36`,symbolColor:`#ffffff`',
       );
       expect(mainBundle).toContain(
-        'if(process.platform!==`win32`&&process.platform!==`linux`||t!==`primary`)return;',
+        'process.env.CODEX_DISABLE_LINUX_TITLEBAR_OVERLAY===`1`)||t!==`primary`)return;',
       );
       expect(mainBundle).toContain(
         '(process.platform===`win32`||process.platform===`linux`)?{autoHideMenuBar:!0}:{}',
@@ -275,18 +275,22 @@ describe('Recovered Codex bundle RED contract', () => {
     }
   });
 
-  test('assembly script normalizes Linux native modules into the packaged runtime', () => {
+  test('assembly script normalizes Linux runtime modules into the packaged runtime', () => {
     const assembleScript = readDesktopFile('scripts/assemble-codex-runtime.mjs');
 
     expect(assembleScript).toContain('resolveLinuxNativeModuleSourceRoot');
     expect(assembleScript).toContain('normalizeNativeModules(extractedAppRoot)');
+    expect(assembleScript).toContain('copyRuntimeNodeModulePackages');
     expect(assembleScript).toContain(
       "path.join(extractedAppRoot, 'node_modules', relativePath)",
     );
+    expect(assembleScript).toContain("'bindings'");
     expect(assembleScript).toContain("'better-sqlite3'");
+    expect(assembleScript).toContain("'file-uri-to-path'");
     expect(assembleScript).toContain("'better_sqlite3.node'");
     expect(assembleScript).toContain("'node-pty'");
     expect(assembleScript).toContain("'pty.node'");
+    expect(assembleScript).toContain("'tslib'");
     expect(assembleScript).toContain("'node-pty.node'");
     expect(assembleScript).toContain(
       'Could not locate rebuilt Linux native modules under any candidate root',
@@ -570,11 +574,12 @@ describe('Recovered Codex bundle RED contract', () => {
       "import { buildCodexLinuxRuntime } from './build-codex-linux-runtime.mjs';",
     );
     expect(stagingScript).toContain(
-      "shellRoot: path.join(desktopRoot, 'out', 'Codex-linux-x64'),",
+      "shellRoot: path.join(desktopRoot, 'out', `Codex-linux-${currentLinuxPackageArch}`),",
     );
     expect(stagingScript).toContain(
       "codexShellRoot: path.resolve(desktopRoot, '..', 'codex', 'app'),",
     );
     expect(stagingScript).toContain('buildCodexLinuxRuntime({');
+    expect(stagingScript).toContain('CODEX_LINUX_PACKAGE_ARCH');
   });
 });

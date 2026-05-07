@@ -9,9 +9,22 @@ const __dirname = path.dirname(__filename);
 const desktopRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(desktopRoot, '..');
 
-const currentLinuxPackageRoot = path.join(desktopRoot, 'out', 'Codex-linux-x64');
+const currentLinuxPackageArch =
+  process.env.CODEX_LINUX_PACKAGE_ARCH ??
+  (process.env.CODEX_LINUX_HELPER_ARCH === 'linux-arm64' || process.arch === 'arm64'
+    ? 'arm64'
+    : 'x64');
+const currentLinuxPackageRoot = path.join(
+  desktopRoot,
+  'out',
+  `Codex-linux-${currentLinuxPackageArch}`,
+);
 const defaultAssembledRuntimeRoot = path.join(desktopRoot, 'tmp', 'codex-runtime');
-const defaultOutputRoot = path.join(desktopRoot, 'out', 'Codex-linux-x64-codex');
+const defaultOutputRoot = path.join(
+  desktopRoot,
+  'out',
+  `Codex-linux-${currentLinuxPackageArch}-codex`,
+);
 const defaultCodexShellRoot = path.join(repoRoot, 'codex', 'app');
 
 function parseArgValue(argv, name) {
