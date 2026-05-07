@@ -1,6 +1,7 @@
 {
   "name": "codex-desktop",
   "productName": "Codex",
+  "desktopName": "Codex.desktop",
   "version": "26.429.30905",
   "description": "Codex",
   "main": "recovered/app-asar-extracted/.vite/build/bootstrap.js",
@@ -24,7 +25,8 @@
     "test:linux": "node ./tests/linux/run-jest.cjs --runInBand",
     "test:linux:codex-package": "node ./tests/linux/run-jest.cjs ./tests/linux/codex-package.red.test.ts --runInBand",
     "test:linux:ci": "node ./tests/linux/run-jest.cjs --ci --runInBand",
-    "test:linux:red": "node ./tests/linux/run-jest.cjs --runInBand --runTestsByPath ./tests/linux/linux-regression.contract.test.ts"
+    "test:linux:red": "node ./tests/linux/run-jest.cjs --runInBand --runTestsByPath ./tests/linux/linux-regression.contract.test.ts",
+    "generate:linux-icons": "node ./scripts/generate-linux-icons.mjs"
   },
   "keywords": [
     "electron",

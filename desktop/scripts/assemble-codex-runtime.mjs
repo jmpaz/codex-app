@@ -17,6 +17,7 @@ const recoveredExtractedAppRoot = path.join(
   'recovered',
   'app-asar-extracted',
 );
+const linuxDesktopName = 'Codex.desktop';
 const supportedLinuxHelperResourceDirs = new Set(['linux-x64', 'linux-arm64']);
 const defaultLinuxHelperResourceDir = process.arch === 'arm64' ? 'linux-arm64' : 'linux-x64';
 const linuxHelperResourceDir =
@@ -1911,8 +1912,43 @@ function stageLinuxBrowserLauncher(extractedAppRoot) {
   };
 }
 
+function ensureLinuxDesktopIdentity(extractedAppRoot) {
+  const packageJsonPath = path.join(extractedAppRoot, 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+  if (packageJson.desktopName === linuxDesktopName) {
+    return {
+      patched: false,
+      results: [
+        {
+          label: 'linux desktop app id metadata',
+          patched: false,
+          skipped: true,
+          reason: 'already set',
+        },
+      ],
+    };
+  }
+
+  packageJson.desktopName = linuxDesktopName;
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+  return {
+    patched: true,
+    results: [
+      {
+        label: 'linux desktop app id metadata',
+        patched: true,
+        skipped: false,
+        reason: null,
+      },
+    ],
+  };
+}
+
 export function patchExtractedCodexApp(extractedAppRoot) {
   return {
+    packageMetadata: ensureLinuxDesktopIdentity(extractedAppRoot),
     linuxBrowserLauncher: stageLinuxBrowserLauncher(extractedAppRoot),
     preload: patchCodexPreload(extractedAppRoot),
     bootstrap: patchCodexBootstrap(extractedAppRoot),

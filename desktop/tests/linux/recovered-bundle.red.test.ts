@@ -278,6 +278,8 @@ describe('Recovered Codex bundle RED contract', () => {
   test('assembly script normalizes Linux runtime modules into the packaged runtime', () => {
     const assembleScript = readDesktopFile('scripts/assemble-codex-runtime.mjs');
 
+    expect(assembleScript).toContain('ensureLinuxDesktopIdentity');
+    expect(assembleScript).toContain('Codex.desktop');
     expect(assembleScript).toContain('resolveLinuxNativeModuleSourceRoot');
     expect(assembleScript).toContain('normalizeNativeModules(extractedAppRoot)');
     expect(assembleScript).toContain('copyRuntimeNodeModulePackages');
@@ -478,6 +480,15 @@ describe('Recovered Codex bundle RED contract', () => {
   });
 
   test('linux branding assets are vendored for package metadata and recovered UI chrome', () => {
+    const packageJson = JSON.parse(readDesktopFile('package.json')) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.['generate:linux-icons']).toBe(
+      'node ./scripts/generate-linux-icons.mjs',
+    );
+    expect((packageJson as { desktopName?: string }).desktopName).toBe('Codex.desktop');
+    expect(fs.existsSync(path.join(desktopRoot, 'assets', 'icons', 'codex-logo-source.png'))).toBe(true);
     expect(fs.existsSync(path.join(desktopRoot, 'assets', 'icons', 'codex-logo-32.png'))).toBe(true);
     expect(fs.existsSync(path.join(desktopRoot, 'assets', 'icons', 'codex-logo-64.png'))).toBe(true);
     expect(fs.existsSync(path.join(desktopRoot, 'assets', 'icons', 'codex-logo-128.png'))).toBe(true);

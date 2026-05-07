@@ -358,10 +358,12 @@ describe('Linux Ubuntu port regression gates (T4a)', () => {
     expect(debTemplate).toContain(
       'Exec=/usr/bin/env ELECTRON_OZONE_PLATFORM_HINT=x11 <%= name %> --ozone-platform=x11 %u',
     );
+    expect(debTemplate).toContain('StartupWMClass=Codex');
     expect(debTemplate).toContain('MimeType=<%= mimeType.join(\';\') %>;');
     expect(appImageDesktop).toContain(
       `Exec=/usr/bin/env ELECTRON_OZONE_PLATFORM_HINT=x11 Codex --ozone-platform=x11 ${protocolModule.CODEX_PROTOCOL_URL_ARG}`,
     );
+    expect(appImageDesktop).toContain('StartupWMClass=Codex');
     expect(appImageDesktop).toContain(
       `MimeType=${protocolModule.CODEX_PROTOCOL_MIME_TYPE};`,
     );

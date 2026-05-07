@@ -10,12 +10,54 @@ This repo tracks the Linux packaging pipeline for Codex and publishes installabl
 
 - `desktop/`: Electron Forge workspace used to build Linux release packages
 - `codex/`: canonical current upstream payload root used for the active Linux refresh line
+- `nix/`: Linux-only Nix package, checks, dev shell, and Home Manager module
+
+## Nix flake
+
+The flake builds Codex from the checked-in `desktop` source pipeline for
+`x86_64-linux` and `aarch64-linux`.
+
+Useful commands:
+
+```bash
+nix flake show
+nix build .#codex-app
+nix build .#checks.x86_64-linux.default
+nix run .
+```
+
+The flake exports:
+
+- `packages.${system}.codex-app` and `packages.${system}.default`
+- `apps.${system}.default`
+- `checks.${system}.default`
+- `devShells.${system}.default`
+- `homeManagerModules.default`
+
+There are no Darwin outputs and no cross-compile support promise. ARM support
+means a native `aarch64-linux` build with matching Linux helper selection and
+native modules.
+
+Home Manager consumers can import `homeManagerModules.default` and configure
+`programs.codex-app`. The package defaults to an X11-compatible launch contract;
+Wayland and compositor-specific behavior should be selected declaratively:
+
+```nix
+{
+  programs.codex-app = {
+    enable = true;
+    ozonePlatform = "wayland";
+    enableWaylandDecorations = false;
+    enableTitleBarOverlay = false;
+  };
+}
+```
 
 GitHub release artifacts:
 - Install from GitHub Releases using packaged artifacts (`.AppImage` / `.deb` / `.rpm`).
 - Built Linux installers are release-only outputs and are not tracked in git.
-- Current Linux artifact versioning follows the embedded Electron app version `26.422.21647`; the embedded build number is `2056`.
-- Release tags like `v26.422.21647` trigger `.github/workflows/linux-release.yml`.
+- Current Linux artifact versioning follows the embedded Electron app version `26.429.30905`; the embedded build number is `2345`.
+- Release tags like `v26.429.30905` trigger `.github/workflows/linux-release.yml`.
 
 Arch Linux / Yay:
 - AUR metadata lives in `packaging/aur/openai-codex-desktop-bin`.
