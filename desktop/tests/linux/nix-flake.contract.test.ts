@@ -48,6 +48,15 @@ describe('Nix flake contract', () => {
     expect(packageNix).toContain('exec ${lib.getExe git} "$@"');
   });
 
+  test('runtime assembly keeps Linux on the production desktop flavor', () => {
+    const assembleRuntime = readRepoFile('desktop/scripts/assemble-codex-runtime.mjs');
+
+    expect(assembleRuntime).toContain('bootstrap linux prod flavor');
+    expect(assembleRuntime).toContain(
+      'x=process.platform===`linux`?`prod`:t.C.resolve()',
+    );
+  });
+
   test('Home Manager module keeps launch policy separate from the package', () => {
     const homeManager = readRepoFile('nix/home-manager.nix');
 

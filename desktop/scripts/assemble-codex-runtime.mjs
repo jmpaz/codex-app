@@ -88,6 +88,15 @@ const bootstrapLinuxGitWrapperAlternatives = [
 ];
 const bootstrapLinuxGitWrapperMarker =
   'process.platform===`linux`&&typeof process.resourcesPath==`string`';
+const bootstrapLinuxProdFlavorAlternatives = [
+  {
+    target: 'var b=process.platform===`darwin`,x=t.C.resolve();',
+    replacement:
+      'var b=process.platform===`darwin`,x=process.platform===`linux`?`prod`:t.C.resolve();',
+  },
+];
+const bootstrapLinuxProdFlavorMarker =
+  'x=process.platform===`linux`?`prod`:t.C.resolve()';
 const workerHandleRequestPatchTarget =
   'let a;try{switch(e.method){case`stable-metadata`:a=await this.handleResolveStableMetadata(e.params,{appServerClient:r});break;';
 const workerHandleRequestPatchReplacement =
@@ -1424,6 +1433,11 @@ function patchCodexBootstrap(extractedAppRoot) {
         label: 'bootstrap linux git wrapper path',
         alternatives: bootstrapLinuxGitWrapperAlternatives,
         marker: bootstrapLinuxGitWrapperMarker,
+      },
+      {
+        label: 'bootstrap linux prod flavor',
+        alternatives: bootstrapLinuxProdFlavorAlternatives,
+        marker: bootstrapLinuxProdFlavorMarker,
       },
       {
         type: 'regex',
