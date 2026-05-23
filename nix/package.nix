@@ -40,7 +40,7 @@ buildNpmPackage {
   src = source;
   sourceRoot = "codex-app-source/desktop";
 
-  npmDepsHash = "sha256-zNemMlbHr7dArtIvujcgOSgYqxqH8h12U6zvEbF1mX8=";
+  npmDepsHash = "sha256-fOQHVE+H9hHT3eDtloZ2iJVRvDMnXIXvhSoOm0qFthQ=";
   makeCacheWritable = true;
 
   env = {

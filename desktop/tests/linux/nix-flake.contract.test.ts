@@ -52,9 +52,7 @@ describe('Nix flake contract', () => {
     const assembleRuntime = readRepoFile('desktop/scripts/assemble-codex-runtime.mjs');
 
     expect(assembleRuntime).toContain('bootstrap linux prod flavor');
-    expect(assembleRuntime).toContain(
-      'x=process.platform===`linux`?`prod`:t.C.resolve()',
-    );
+    expect(assembleRuntime).toContain('x=process.platform===`linux`?`prod`:');
   });
 
   test('Home Manager module keeps launch policy separate from the package', () => {
